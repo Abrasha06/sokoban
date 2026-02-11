@@ -38,12 +38,3 @@ Thumbs.db
 
 # --- PROYECTO ENFÓCATE ---
 *.log
-
-
-# Ignorar la librería core
-enfocate/
-src/
-
-# Ignorar basura de Python
-__pycache__/
-*.pyc

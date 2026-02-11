@@ -31,10 +31,10 @@ class MiJuego(GameBase):
 
             ["W", "W", "W", "W", "W", "W", "W", "W"],
             ["W", "P", " ", " ", " ", " ", " ", "W"],
-            ["W", " ", " ", " ", " ", " ", " ", "W"],
+            ["W", " ", " ", "B", " ", " ", " ", "W"],
             ["W", " ", " ", "B", " ", " ", " ", "W"], 
-            ["W", " ", " ", " ", " ", " ", " ", "W"],
-            ["W", " ", " ", " ", " ", "G", " ", "W"], 
+            ["W", " ", " ", "B", " ", " ", " ", "W"],
+            ["W", " ", "B", "B", "B", "G", " ", "W"], 
             ["W", " ", " ", " ", " ", " ", " ", "W"],
             ["W", "W", "W", "W", "W", "W", "W", "W"]
         ]
@@ -79,7 +79,7 @@ class MiJuego(GameBase):
                     nueva_fila = self.pos_p[0] + dif_filas
                     nueva_col = self.pos_p[1] + dif_col
                     
-                    # ver que no es un muro (o la caja por ahora)
+                    # ver que no es un muro 
                     if self.mapa[nueva_fila][nueva_col] != "W" and self.mapa[nueva_fila][nueva_col] != "B":
                         
                         self.mapa[self.pos_p[0]][self.pos_p[1]] = " "
@@ -87,6 +87,18 @@ class MiJuego(GameBase):
                         self.pos_p = [nueva_fila, nueva_col]
                         
                         self.mapa[nueva_fila][nueva_col] = "P"
+
+                    elif self.mapa[nueva_fila][nueva_col] == "B":
+                    # REvisar que hay delante de la caja
+                     del_f = nueva_fila + dif_filas
+                     del_c = nueva_col + dif_col
+
+                    #mover la fokin caja
+                     if self.mapa[del_f][del_c] in [" ", "G"]:
+                        self.mapa[del_f][del_c] = "B"
+                        self.mapa[nueva_fila][nueva_col] = "P"
+                        self.mapa[self.pos_p[0]][self.pos_p[1]] = " "
+                        self.pos_p = [nueva_fila, nueva_col]
 
         pass
 
