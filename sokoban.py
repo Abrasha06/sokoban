@@ -1,6 +1,6 @@
 import pygame
 import sys
-from src.enfocate import GameBase, GameMetadata, COLORS
+from enfocate import GameBase, GameMetadata, COLORS
 
 class MiJuego(GameBase):
     def __init__(self) -> None:
@@ -31,9 +31,9 @@ class MiJuego(GameBase):
 
             ["W", "W", "W", "W", "W", "W", "W", "W"],
             ["W", "P", " ", " ", " ", " ", " ", "W"],
-            ["W", " ", " ", "B", " ", " ", " ", "W"],
-            ["W", " ", " ", "B", " ", " ", " ", "W"], 
-            ["W", " ", " ", "B", " ", " ", " ", "W"],
+            ["W", " ", " ", " ", " ", " ", " ", "W"],
+            ["W", " ", " ", " ", " ", " ", " ", "W"], 
+            ["W", " ", " ", " ", " ", " ", " ", "W"],
             ["W", " ", "B", "B", "B", "G", " ", "W"], 
             ["W", " ", " ", " ", " ", " ", " ", "W"],
             ["W", "W", "W", "W", "W", "W", "W", "W"]
@@ -89,11 +89,11 @@ class MiJuego(GameBase):
                         self.mapa[nueva_fila][nueva_col] = "P"
 
                     elif self.mapa[nueva_fila][nueva_col] == "B":
-                    # REvisar que hay delante de la caja
+                    # Revisar que hay delante de la caja
                      del_f = nueva_fila + dif_filas
                      del_c = nueva_col + dif_col
 
-                    #mover la fokin caja
+                    #mover la caja
                      if self.mapa[del_f][del_c] in [" ", "G"]:
                         self.mapa[del_f][del_c] = "B"
                         self.mapa[nueva_fila][nueva_col] = "P"

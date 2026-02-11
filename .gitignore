@@ -43,6 +43,7 @@ Thumbs.db
 # Ignorar la librería core
 enfocate/
 src/
+sokoban_enfocate/
 
 # Ignorar basura de Python
 __pycache__/
