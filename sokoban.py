@@ -158,9 +158,6 @@ class MiJuego(GameBase):
                     centro = (x + self.TAMANO_CELDA // 2, y + self.TAMANO_CELDA // 2)
                     pygame.draw.circle(self.surface, (50, 150, 255), centro, 25)
                 
-                ''' elif contenido == "G": #Meta
-                    pygame.draw.rect(self.surface, (255, 255, 100), rect, 3) 
-                    '''
                 # Rejilla
                 pygame.draw.rect(self.surface, (45, 45, 45), rect, 1)
 
