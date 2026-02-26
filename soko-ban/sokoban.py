@@ -1,11 +1,11 @@
 import sys
 import os
 
-
+from enfocate import GameBase, GameMetadata, COLORS
 
 import pygame
 import random
-from src.enfocate import GameBase, GameMetadata, COLORS
+
 from niveles import MAPAS
 from menu import InterfazMenu
 from audio import GestorAudio 
@@ -343,6 +343,23 @@ class MiJuego(GameBase):
         else:
             self.dibujar_escena_juego()
 
+
+    def dibujar_titulo_decorado(self, texto, x, y):
+        
+        texto_sombra = self.fuente_titulos.render(texto, True, (20, 20, 30))
+        self.surface.blit(texto_sombra, (x + 4, y + 4))
+        
+        
+        texto_contorno = self.fuente_titulos.render(texto, True, (0, 0, 0))
+        self.surface.blit(texto_contorno, (x - 2, y))
+        self.surface.blit(texto_contorno, (x + 2, y))
+        self.surface.blit(texto_contorno, (x, y - 2))
+        self.surface.blit(texto_contorno, (x, y + 2))
+        
+        
+        texto_principal = self.fuente_titulos.render(texto, True, (255, 215, 0))
+        self.surface.blit(texto_principal, (x, y))
+
     def dibujar_interfaz_menu(self):
         menu = self.interfaz_menu
         ancho_v, alto_v = self.surface.get_width(), self.surface.get_height()
@@ -350,29 +367,46 @@ class MiJuego(GameBase):
         centro_x_dificultad = ancho_v // 2 - 150
         
         if menu.submenu == "principal":
-            texto = self.fuente_titulos.render("SOKOBAN MASTER", True, (255, 255, 255))
-            self.surface.blit(texto, (ancho_v // 2 - texto.get_width() // 2, 60))
+        
+            texto = "SOKOBAN MASTER"
+            ancho_texto = self.fuente_titulos.size(texto)[0]
+            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 80)
             
-            menu.boton_jugar.dibujar(self.surface, centro_x, 220)
-            menu.boton_ayuda.dibujar(self.surface, centro_x, 310)
-            menu.boton_salir.dibujar(self.surface, centro_x, 400)
+            menu.boton_jugar.dibujar(self.surface, centro_x, 200)
+            menu.boton_ayuda.dibujar(self.surface, centro_x, 320) # CÓMO JUGAR a Y=260
+            menu.boton_salir.dibujar(self.surface, centro_x, 440)
+
+        
+            escala = 3
+            tamano_grande = self.TAMANO_CELDA * escala
+            jugador_der = pygame.transform.scale(self.sprites_jugador['derecha'], (tamano_grande, tamano_grande))
+            
+            y_alineado = 320 + (70 // 2) - (tamano_grande // 2)
+            
+        
+            separacion = 60
+            x_decoracion = centro_x - tamano_grande - separacion
+            
+            self.surface.blit(jugador_der, (x_decoracion, y_alineado))
             
         elif menu.submenu == "dificultad":
-            texto = self.fuente_titulos.render("SELECCIONA MODO", True, (255, 255, 255))
-            self.surface.blit(texto, (ancho_v // 2 - texto.get_width() // 2, 50))
+            texto = "SELECCIONA MODO"
+            ancho_texto = self.fuente_titulos.size(texto)[0]
+            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 60)
             
             menu.boton_facil.dibujar(self.surface, centro_x_dificultad, 160)
-            menu.boton_medio.dibujar(self.surface, centro_x_dificultad, 240)
-            menu.boton_dificil.dibujar(self.surface, centro_x_dificultad, 320)
-            menu.boton_contrareloj.dibujar(self.surface, centro_x_dificultad, 400)
+            menu.boton_medio.dibujar(self.surface, centro_x_dificultad, 250)
+            menu.boton_dificil.dibujar(self.surface, centro_x_dificultad, 340)
+            menu.boton_contrareloj.dibujar(self.surface, centro_x_dificultad, 430)
             
-            menu.boton_volver.dibujar(self.surface, 40, alto_v - 80)
+            menu.boton_volver.dibujar(self.surface, 20, alto_v - 90)
             
         elif menu.submenu == "instrucciones":
-            texto = self.fuente_titulos.render("COMO JUGAR", True, (255, 255, 255))
-            self.surface.blit(texto, (ancho_v // 2 - texto.get_width() // 2, 60))
+            texto = "COMO JUGAR"
+            ancho_texto = self.fuente_titulos.size(texto)[0]
+            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 80)
             
-            lineas = [
+            lineas = [" ",
                 "Empuja las cajas a las metas sin quedar atrapado!",
                 "• Flechas / WASD: Moverse", 
                 "• Z: Deshacer movimiento", 
@@ -384,10 +418,9 @@ class MiJuego(GameBase):
             for i, linea in enumerate(lineas):
                 color = (255, 230, 150) if i == 0 else (220, 220, 220)
                 img_texto = self.fuente_textos.render(linea, True, color)
-                self.surface.blit(img_texto, (ancho_v // 2 - img_texto.get_width() // 2, 180 + i * 50))
+                self.surface.blit(img_texto, (ancho_v // 2 - img_texto.get_width() // 2, 160 + i * 50))
             
-            menu.boton_volver.dibujar(self.surface, 40, alto_v - 80)
-
+            menu.boton_volver.dibujar(self.surface, 20, alto_v - 90)
     def dibujar_escena_juego(self):
         ancho_mapa = self.tablero.total_columnas * self.TAMANO_CELDA
         alto_mapa = self.tablero.total_filas * self.TAMANO_CELDA
