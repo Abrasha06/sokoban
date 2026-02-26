@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enfocate-core-lib"
+version = "1.0.0"
+description = "Core Library para el proyecto integrador Enfócate+"
+authors = [
+  { name = "Alejandro Capriles" },
+  { name = "Alexandro Núñez" },
+  { name = "Anelissa Espín" },
+  { name = "Gabriel Garantón" },
+  { name = "José Aguilera" },
+  { name = "Leonardo Di Giorgio" },
+  { name = "Luis Lameda" },
+  { name = "Odett Sayegh" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pygame>=2.6.0"
+]
+
+[project.urls]
+Repository = "https://github.com/TU_USUARIO/enfocate-core-lib"
+
+[tool.setuptools.packages.find]
+where = ["src"]

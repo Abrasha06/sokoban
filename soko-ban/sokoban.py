@@ -1,11 +1,7 @@
 import sys
 import os
 
-ruta_juego = os.path.dirname(os.path.abspath(__file__))
-ruta_principal = os.path.dirname(ruta_juego)
-ruta_libreria = os.path.join(ruta_principal, "enfocate-core-lib")
-if ruta_libreria not in sys.path:
-    sys.path.append(ruta_libreria)
+
 
 import pygame
 import random
