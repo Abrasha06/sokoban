@@ -171,6 +171,7 @@ class MiJuego(GameBase):
 
     def iniciar_modo_normal(self, dificultad):
         self.modo_de_juego = "normal"
+        self.tiempo_agotado = False
         self.cargar_nivel(dificultad, 0)
 
     def iniciar_modo_contrareloj(self):
