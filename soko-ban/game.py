@@ -369,7 +369,7 @@ class MiJuego(GameBase):
         
         if menu.submenu == "principal":
         
-            texto = "SOKOBAN MASTER"
+            texto = "SOKOBAN"
             ancho_texto = self.fuente_titulos.size(texto)[0]
             self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 80)
             
