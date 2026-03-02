@@ -1,497 +1,369 @@
 import sys
 import os
-
-
-
-
-def configurar_rutas():
-    ruta_actual = os.path.dirname(os.path.abspath(__file__))
-    temp_ruta = ruta_actual
-    ruta_raiz = None
-    
-    for _ in range(10): 
-        if "enfocate-core-lib" in os.listdir(temp_ruta):
-            ruta_raiz = temp_ruta
-            break
-        nueva_ruta = os.path.dirname(temp_ruta)
-        if nueva_ruta == temp_ruta: 
-            break
-        temp_ruta = nueva_ruta
-
-    if ruta_raiz:
-        ruta_libreria = os.path.join(ruta_raiz, "enfocate-core-lib")
-        if ruta_libreria not in sys.path:
-            sys.path.insert(0, ruta_libreria)
-        if ruta_raiz not in sys.path:
-            sys.path.insert(0, ruta_raiz)
-
-configurar_rutas()
-
-from src.enfocate import GameBase, GameMetadata, COLORS
 import pygame
 import random
 
+
 from niveles import MAPAS
-from menu import InterfazMenu
+from enfocate import GameBase, GameMetadata
 from audio import GestorAudio
+    
+
+
+
+
+class Boton:
+    def __init__(self, texto, x, y, ancho, alto, color_normal, color_resaltado):
+        self.texto = texto
+        self.color_normal = color_normal
+        self.color_resaltado = color_resaltado
+        self.fuente = pygame.font.SysFont("Arial", 32, bold=True)
+        
+        self.rect = pygame.Rect(x, y, ancho, alto)
+
+    def dibujar(self, superficie, mouse_pos):
+        
+        esta_encima = self.rect.collidepoint(mouse_pos)
+        color = self.color_resaltado if esta_encima else self.color_normal
+        
+        pygame.draw.rect(superficie, color, self.rect, border_radius=8)
+        pygame.draw.rect(superficie, (255, 255, 255), self.rect, 2, border_radius=8)
+        
+        txt = self.fuente.render(self.texto, True, (255, 255, 255))
+        superficie.blit(txt, txt.get_rect(center=self.rect.center))
+
+    def fue_presionado(self, evento, mouse_pos_convertida):
+        
+        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            return self.rect.collidepoint(mouse_pos_convertida)
+        return False
+
+
+class InterfazMenu:
+    def __init__(self, ancho, alto):
+        centro_x = ancho // 2
+        self.submenu = "principal"
+        
+        
+        self.btn_jugar = Boton("INICIAR JUEGO", centro_x - 175, 200, 350, 70, (40, 80, 160), (60, 100, 200))
+        self.btn_ayuda = Boton("CÓMO JUGAR", centro_x - 175, 320, 350, 70, (40, 80, 160), (60, 100, 200))
+        self.btn_salir = Boton("SALIR", centro_x - 175, 440, 350, 70, (160, 40, 40), (200, 60, 60))
+        
+        self.btn_facil = Boton("FÁCIL", centro_x - 150, 160, 300, 65, (40, 140, 40), (60, 180, 60))
+        self.btn_medio = Boton("MEDIO", centro_x - 150, 250, 300, 65, (140, 140, 40), (180, 180, 60))
+        self.btn_dificil = Boton("DIFÍCIL", centro_x - 150, 340, 300, 65, (140, 40, 40), (180, 60, 60))
+        self.btn_reloj = Boton("CONTRARRELOJ", centro_x - 150, 430, 300, 65, (120, 60, 160), (160, 80, 200))
+        
+        self.btn_volver = Boton("VOLVER", 20, alto - 90, 150, 50, (80, 80, 80), (120, 120, 120))
 
 
 class Tablero:
-    def __init__(self, mapa_datos, imagenes):
-        self.muros = [(fila, columna) 
-                      for fila, datos_fila in enumerate(mapa_datos) 
-                      for columna, valor in enumerate(datos_fila) if valor == "W"]
-        
-        self.metas = [(fila, columna) 
-                      for fila, datos_fila in enumerate(mapa_datos) 
-                      for columna, valor in enumerate(datos_fila) if valor == "G"]
-        
-        self.total_filas = len(mapa_datos)
-        self.total_columnas = len(mapa_datos[0])
+    def __init__(self, datos, imgs):
+        self.muros = [(f, c) for f, fila in enumerate(datos) for c, v in enumerate(fila) if v == "W"]
+        self.metas = [(f, c) for f, fila in enumerate(datos) for c, v in enumerate(fila) if v == "G"]
+        self.filas = len(datos)
+        self.cols = len(datos[0])
+        self.imgs = imgs
 
-        self.img_suelo = imagenes['suelo']
-        self.img_muro = imagenes['muro']
-        self.img_meta = imagenes['meta']
-        
+    def es_muro(self, f, c): return (f, c) in self.muros
 
-    def es_muro(self, fila, columna): 
-        return (fila, columna) in self.muros
-
-    def dibujar(self, superficie, tamano_celda, margen_x, margen_y):
-        # suelo 
-        for fila in range(self.total_filas):
-            for columna in range(self.total_columnas):
-                x = columna * tamano_celda + margen_x
-                y = fila * tamano_celda + margen_y
-                superficie.blit(self.img_suelo, (x, y))
-
-        # metas
-        for (fila, columna) in self.metas:
-            x = columna * tamano_celda + margen_x
-            y = fila * tamano_celda + margen_y
-            superficie.blit(self.img_meta, (x, y))
-
-        # muros
-        for (fila, columna) in self.muros:
-            x = columna * tamano_celda + margen_x
-            y = fila * tamano_celda + margen_y
-            superficie.blit(self.img_muro, (x, y))
+    def dibujar(self, superficie, tamano, offset_x, offset_y):
+        for fila in range(self.filas):
+            for columna in range(self.cols):
+                superficie.blit(self.imgs['suelo'], (columna*tamano+offset_x, fila*tamano+offset_y))
+        for fila, columna in self.metas: superficie.blit(self.imgs['meta'], (columna*tamano+offset_x, fila*tamano+offset_y))
+        for fila, columna in self.muros: superficie.blit(self.imgs['muro'], (columna*tamano+offset_x, fila*tamano+offset_y))
 
 class Caja:
-    def __init__(self, fila, columna, imagenes): 
-        self.fila = fila
-        self.columna = columna
-        self.img_normal = imagenes['caja']
-        self.img_meta = imagenes['caja_meta']
-
-    def dibujar(self, superficie, tamano_celda, tablero, margen_x, margen_y):
-        x = self.columna * tamano_celda + margen_x
-        y = self.fila * tamano_celda + margen_y
-        
-        imagen_a_usar = self.img_meta if (self.fila, self.columna) in tablero.metas else self.img_normal
-        superficie.blit(imagen_a_usar, (x, y))
-
+    def __init__(self, f, c, imgs):
+        self.f, self.c = f, c
+        self.imgs = imgs
+    
+    def dibujar(self, sup, tam, tab, ox, oy):
+        img = self.imgs['caja_meta'] if (self.f, self.c) in tab.metas else self.imgs['caja']
+        sup.blit(img, (self.c*tam+ox, self.f*tam+oy))
 
 class Jugador:
-    def __init__(self, fila, columna, sprites): 
-        self.fila = fila
-        self.columna = columna
+    def __init__(self, f, c, sprites):
+        self.f, self.c = f, c
         self.sprites = sprites
-        self.direccion_actual = "idle"
-
-    def dibujar(self, superficie, tamano_celda, margen_x, margen_y):
-        x = self.columna * tamano_celda + margen_x
-        y = self.fila * tamano_celda + margen_y
-        
-        imagen = self.sprites.get(self.direccion_actual, self.sprites["idle"])
-        superficie.blit(imagen, (x, y))
+        self.dir = "idle"
+    
+    def dibujar(self, sup, tam, ox, oy):
+        img = self.sprites.get(self.dir, self.sprites["idle"])
+        sup.blit(img, (self.c*tam+ox, self.f*tam+oy))
 
 
 class MiJuego(GameBase):
-    def __init__(self) -> None:
+    def __init__(self):
         pygame.init()
         meta = GameMetadata(
             title="Sokoban",
-            description="El rompecabezas de lógica, estrategia y ordenar sin quedar atrapado.",
-            authors=["Abraham Sosa", "Luis Millán", "Joyce Valerio", "Edgardo Quiñones."],
+            description="Lógica y estrategia.",
+            authors=["Grupo 6"],
             group_number=6
         )
         super().__init__(meta)
         
-        self.TAMANO_CELDA = 60
-        self.estado_actual = "MENU"
-        self.interfaz_menu = InterfazMenu()
+        self.TAM = 60
+        self.estado = "MENU"
+        self.menu = None 
         
+        self.modo = "normal"
+        self.dificultad = "facil"
+        self.indice_niv = 0
+        self.hist = []
+        self.completado = False
         
-
-        self.modo_de_juego = "normal"
-        self.dificultad_actual = "facil"
-        self.indice_nivel = 0
-        self.historial_movimientos = []
-        self.nivel_completado = False
-        
-        
-        self.tiempo_restante = 0.0
-        self.niveles_superados_contrareloj = 0
-        self.tiempo_agotado = False
+        self.tiempo = 0.0
+        self.ganados = 0
+        self.agotado = False
         self.audio = GestorAudio()
 
-
-    def cargar_recursos_graficos(self):
+    def escalar_mouse(self, pos):
         
-        ruta_base = os.path.dirname(__file__)
 
-        def preparar(archivo):
+        
+        ventana_w, ventana_h = pygame.display.get_surface().get_size()
+        juego_w, juego_h = self.surface.get_size()
+        
+        
+        if ventana_w == 0 or ventana_h == 0: return (0, 0)
             
-            ruta_completa = os.path.join(ruta_base, "assets", "sprites", archivo)
-            
-            
-            if not os.path.exists(ruta_completa):
-                print(f"Error crítico: No se encontró el archivo {archivo} en {ruta_completa}")
-                pygame.quit()
-                sys.exit()
+        rx = pos[0] * (juego_w / ventana_w)
+        ry = pos[1] * (juego_h / ventana_h)
+        return (rx, ry)
 
-            img = pygame.image.load(ruta_completa).convert_alpha()
-            return pygame.transform.scale(img, (self.TAMANO_CELDA, self.TAMANO_CELDA))
+    def cargar_imgs(self):
+        base = os.path.dirname(__file__)
+        def load(n):
+            path = os.path.join(base, "assets", "sprites", n)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                return pygame.transform.scale(img, (self.TAM, self.TAM))
+            except:
+                surf = pygame.Surface((self.TAM, self.TAM))
+                surf.fill((255, 0, 0) if "muro" in n else (0, 255, 0))
+                return surf
+        
+        caja = load("caja.png")
+        caja_meta = caja.copy()
+        filtro = pygame.Surface((self.TAM, self.TAM), pygame.SRCALPHA)
+        filtro.fill((100, 255, 100, 180))
+        caja_meta.blit(filtro, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
 
+        self.imgs = {'suelo': load("suelo.png"), 'muro': load("muro.png"), 
+                     'meta': load("meta.png"), 'caja': caja, 'caja_meta': caja_meta}
         
-        img_caja_base = preparar("caja.png")
-        
-        
-        img_caja_meta = img_caja_base.copy()
-        filtro_verde = pygame.Surface((self.TAMANO_CELDA, self.TAMANO_CELDA), pygame.SRCALPHA)
-        filtro_verde.fill((100, 255, 100, 180)) 
-        img_caja_meta.blit(filtro_verde, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-
-        self.imagenes = {
-            'suelo': preparar("suelo.png"),
-            'muro': preparar("muro.png"),
-            'meta': preparar("meta.png"),
-            'caja': img_caja_base,
-            'caja_meta': img_caja_meta
+        der = load("jugador_der.png")
+        self.sprites = {
+            'idle': load("jugador_idle.png"), 'arriba': load("jugador_arriba.png"),
+            'abajo': load("jugador_abajo.png"), 'derecha': der, 
+            'izquierda': pygame.transform.flip(der, True, False)
         }
-
-        sprite_der = preparar("jugador_der.png")
-        sprite_izq = pygame.transform.flip(sprite_der, True, False)
-
-        self.sprites_jugador = {
-            'idle': preparar("jugador_idle.png"),
-            'arriba': preparar("jugador_arriba.png"),
-            'abajo': preparar("jugador_abajo.png"),
-            'derecha': sprite_der,
-            'izquierda': sprite_izq
-        }
-
-        self.fuente_titulos = pygame.font.SysFont("Arial", 72, bold=True) 
-        self.fuente_textos = pygame.font.SysFont("Arial", 22)
-        self.fuente_reloj = pygame.font.SysFont("Arial", 28, bold=True)
-        self.fuente_fin = pygame.font.SysFont("Arial", 36, bold=True)
-    
+        self.font_grande = pygame.font.SysFont("Arial", 72, bold=True)
+        self.font_chica = pygame.font.SysFont("Arial", 22)
+        self.font_reloj = pygame.font.SysFont("Arial", 28, bold=True)
 
     def on_start(self):
-
-        pygame.key.set_repeat(200, 100)
-        self.cargar_recursos_graficos()
+        self.menu = InterfazMenu(self.surface.get_width(), self.surface.get_height())
+        self.cargar_imgs()
         self.audio.reproducir_musica("MusicaFondo.ogg")
 
-    def iniciar_modo_normal(self, dificultad):
-        self.modo_de_juego = "normal"
-        self.tiempo_agotado = False
-        self.cargar_nivel(dificultad, 0)
-
-    def iniciar_modo_contrareloj(self):
-        self.modo_de_juego = "contrareloj"
-        self.tiempo_restante = 180.0 
-        self.niveles_superados_contrareloj = 0
-        self.tiempo_agotado = False
-        self.cargar_nivel_aleatorio()
-
-    def cargar_nivel_aleatorio(self):
-        opciones_dificultad = list(MAPAS.keys())
-        dificultad_al_azar = random.choice(opciones_dificultad)
-        indice_al_azar = random.randint(0, len(MAPAS[dificultad_al_azar]) - 1)
-        
-        self.cargar_nivel(dificultad_al_azar, indice_al_azar)
-
-    def cargar_nivel(self, dificultad, indice):
-        if dificultad in MAPAS and indice < len(MAPAS[dificultad]):
-            datos_mapa = MAPAS[dificultad][indice]
+    def cargar_nivel(self, d, i):
+        if d in MAPAS and i < len(MAPAS[d]):
+            datos = MAPAS[d][i]
+            self.tab = Tablero(datos, self.imgs)
+            self.cajas = [Caja(f,c,self.imgs) for f, fila in enumerate(datos) for c, v in enumerate(fila) if v == "B"]
+            pf, pc = [(f,c) for f, fila in enumerate(datos) for c, v in enumerate(fila) if v == "P"][0]
+            self.player = Jugador(pf, pc, self.sprites)
             
-            self.tablero = Tablero(datos_mapa, self.imagenes)
-            self.cajas = [Caja(f, c, self.imagenes) for f, fila in enumerate(datos_mapa) 
-                          for c, val in enumerate(fila) if val == "B"]
-            
-            pos_p = [(f, c) for f, fila in enumerate(datos_mapa) for c, val in enumerate(fila) if val == "P"][0]
-            self.jugador = Jugador(pos_p[0], pos_p[1], self.sprites_jugador)
-            
-            self.nivel_completado = False
-            self.historial_movimientos = []
-            self.dificultad_actual = dificultad
-            self.indice_nivel = indice
-            self.estado_actual = "JUGANDO"
+            self.hist = []
+            self.completado = False
+            self.dificultad = d
+            self.indice_niv = i
+            self.estado = "JUGANDO"
         else:
-            self.estado_actual = "MENU"
+            self.estado = "MENU"
 
-
-    def update(self, dt: float):
+    
+    def handle_events(self, events):
         
-        if self.estado_actual == "JUGANDO" and self.modo_de_juego == "contrareloj":
-            if not self.nivel_completado and not self.tiempo_agotado:
-                self.tiempo_restante -= dt
-                if self.tiempo_restante <= 0:
-                    self.tiempo_restante = 0
-                    self.tiempo_agotado = True
+        mouse_pos_actual = pygame.mouse.get_pos()
+        mouse_convertido_actual = self.escalar_mouse(mouse_pos_actual)
 
-        for evento in pygame.event.get():
+        for evento in events:
+            
+            mouse_pos_click = None
+            
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                
+                mouse_pos_click = self.escalar_mouse(evento.pos)
+            
             if evento.type == pygame.QUIT:
                 self._stop_context()
             
-            if self.estado_actual == "MENU":
-                self.gestionar_logica_menu(evento)
-            else:
-                self.gestionar_logica_juego(evento)
-
-    def gestionar_logica_menu(self, evento):
-        menu = self.interfaz_menu
-        
-        if menu.submenu == "principal":
-            if menu.boton_jugar.fue_presionado(evento): 
-                menu.submenu = "dificultad"
-            elif menu.boton_ayuda.fue_presionado(evento): 
-                menu.submenu = "instrucciones"
-            elif menu.boton_salir.fue_presionado(evento): 
-                self._stop_context()
-        
-        elif menu.submenu == "dificultad":
-            if menu.boton_volver.fue_presionado(evento): 
-                menu.submenu = "principal"
-            elif menu.boton_facil.fue_presionado(evento): 
-                self.iniciar_modo_normal("facil")
-            elif menu.boton_medio.fue_presionado(evento): 
-                self.iniciar_modo_normal("medio")
-            elif menu.boton_dificil.fue_presionado(evento): 
-                self.iniciar_modo_normal("dificil")
-            elif menu.boton_contrareloj.fue_presionado(evento):
-                self.iniciar_modo_contrareloj()
+            elif self.estado == "MENU":
+                
+                self.logica_menu(evento, mouse_pos_click, mouse_convertido_actual)
             
-        elif menu.submenu == "instrucciones":
-            if menu.boton_volver.fue_presionado(evento): 
-                menu.submenu = "principal"
+            elif self.estado == "JUGANDO":
+                self.logica_juego(evento)
 
-    def gestionar_logica_juego(self, evento):
+    def update(self, dt):
+        if self.estado == "JUGANDO" and self.modo == "contrareloj":
+            if not self.completado and not self.agotado:
+                self.tiempo -= dt
+                if self.tiempo <= 0:
+                    self.tiempo = 0
+                    self.agotado = True
+
+    def logica_menu(self, evento, pos_click, pos_actual):
+        menu = self.menu
+        
+        
+        if pos_click:
+            if menu.submenu == "principal":
+                if menu.btn_jugar.rect.collidepoint(pos_click): menu.submenu = "dificultad"
+                elif menu.btn_ayuda.rect.collidepoint(pos_click): menu.submenu = "instrucciones"
+                elif menu.btn_salir.rect.collidepoint(pos_click): self._stop_context()
+            
+            elif menu.submenu == "dificultad":
+                if menu.btn_volver.rect.collidepoint(pos_click): menu.submenu = "principal"
+                elif menu.btn_facil.rect.collidepoint(pos_click): 
+                    self.modo = "normal"; self.cargar_nivel("facil", 0)
+                elif menu.btn_medio.rect.collidepoint(pos_click): 
+                    self.modo = "normal"; self.cargar_nivel("medio", 0)
+                elif menu.btn_dificil.rect.collidepoint(pos_click): 
+                    self.modo = "normal"; self.cargar_nivel("dificil", 0)
+                elif menu.btn_reloj.rect.collidepoint(pos_click): 
+                    self.modo = "contrareloj"; self.tiempo = 180.0; self.ganados = 0; self.agotado = False; self.cargar_random()
+            
+            elif menu.submenu == "instrucciones":
+                if menu.btn_volver.rect.collidepoint(pos_click): menu.submenu = "principal"
+
+    def cargar_random(self):
+        d = random.choice(list(MAPAS.keys()))
+        i = random.randint(0, len(MAPAS[d])-1)
+        self.cargar_nivel(d, i)
+
+    def logica_juego(self, evento):
         if evento.type == pygame.KEYDOWN:
-            
-            if evento.key == pygame.K_ESCAPE: 
-                self.estado_actual = "MENU"
-            
-        
-            elif self.tiempo_agotado:
-                if evento.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE):
-                    self.estado_actual = "MENU"
-                return
-            
-            elif evento.key == pygame.K_r: 
-                self.cargar_nivel(self.dificultad_actual, self.indice_nivel)
-            
-            elif evento.key == pygame.K_z: 
-                self.deshacer_ultimo_movimiento()
-            
-            elif self.nivel_completado and evento.key in (pygame.K_RETURN, pygame.K_SPACE):
-                pygame.mixer.music.set_volume(0.5)
-                if self.modo_de_juego == "contrareloj":
-                    self.niveles_superados_contrareloj += 1
-                    self.cargar_nivel_aleatorio()
-                else:
-                    self.cargar_nivel(self.dificultad_actual, self.indice_nivel + 1)
-            
-            elif not self.nivel_completado:
-                controles = {
-                    pygame.K_UP: (-1, 0, "arriba"),    pygame.K_w: (-1, 0, "arriba"),
-                    pygame.K_DOWN: (1, 0, "abajo"),   pygame.K_s: (1, 0, "abajo"),
-                    pygame.K_LEFT: (0, -1, "izquierda"),  pygame.K_a: (0, -1, "izquierda"),
-                    pygame.K_RIGHT: (0, 1, "derecha"),  pygame.K_d: (0, 1, "derecha")
+            if evento.key == pygame.K_ESCAPE: self.estado = "MENU"
+            elif self.agotado:
+                if evento.key in (pygame.K_RETURN, pygame.K_SPACE): self.estado = "MENU"
+            elif evento.key == pygame.K_r: self.cargar_nivel(self.dificultad, self.indice_niv)
+            elif evento.key == pygame.K_z: self.deshacer()
+            elif self.completado and evento.key in (pygame.K_RETURN, pygame.K_SPACE):
+                if self.modo == "contrareloj":
+                    self.ganados += 1; self.cargar_random()
+                else: self.cargar_nivel(self.dificultad, self.indice_niv+1)
+            elif not self.completado:
+                moves = {
+                    pygame.K_UP: (-1,0,"arriba"), pygame.K_w: (-1,0,"arriba"),
+                    pygame.K_DOWN: (1,0,"abajo"), pygame.K_s: (1,0,"abajo"),
+                    pygame.K_LEFT: (0,-1,"izquierda"), pygame.K_a: (0,-1,"izquierda"),
+                    pygame.K_RIGHT: (0,1,"derecha"), pygame.K_d: (0,1,"derecha")
                 }
-        
-                if evento.key in controles:
-        
-                    paso_fila, paso_columna, nombre_dir = controles[evento.key] 
-                
-        
-                    self.procesar_movimiento(paso_fila, paso_columna, nombre_dir)
+                if evento.key in moves:
+                    self.mover(moves[evento.key])
 
-    def procesar_movimiento(self, delta_fila, delta_columna, nombre_dir):
-        self.jugador.direccion_actual = nombre_dir
+    def mover(self, datos):
+        df, dc, dir_n = datos
+        self.player.dir = dir_n
+        estado = {'p': (self.player.f, self.player.c), 'c': [(ca.f, ca.c) for ca in self.cajas]}
         
-        estado_previo = {
-            'jugador': (self.jugador.fila, self.jugador.columna),
-            'cajas': [(caja.fila, caja.columna) for caja in self.cajas]
-        }
+        nf, nc = self.player.f + df, self.player.c + dc
+        if self.tab.es_muro(nf, nc): return
         
-        nueva_f, nueva_c = self.jugador.fila + delta_fila, self.jugador.columna + delta_columna
-        
-        if self.tablero.es_muro(nueva_f, nueva_c): return
-        
-        caja = next((c for c in self.cajas if c.fila == nueva_f and c.columna == nueva_c), None)
-        
+        caja = next((c for c in self.cajas if c.f == nf and c.c == nc), None)
         if caja:
-            tras_f, tras_c = nueva_f + delta_fila, nueva_c + delta_columna
-            if self.tablero.es_muro(tras_f, tras_c) or any(c.fila == tras_f and c.columna == tras_c for c in self.cajas):
-                return
-            caja.fila, caja.columna = tras_f, tras_c
+            tf, tc = nf + df, nc + dc
+            if self.tab.es_muro(tf, tc) or any(c.f == tf and c.c == tc for c in self.cajas): return
+            caja.f, caja.c = tf, tc
         
-        self.jugador.fila, self.jugador.columna = nueva_f, nueva_c
-        self.historial_movimientos.append(estado_previo)
-        self.nivel_completado = all((c.fila, c.columna) in self.tablero.metas for c in self.cajas)
-        
-        if self.nivel_completado:
-            pygame.mixer.music.set_volume(0.2)
-            self.audio.reproducir_sfx("victoria") 
-            self.nivel_completado = True
+        self.player.f, self.player.c = nf, nc
+        self.hist.append(estado)
+        self.completado = all((ca.f, ca.c) in self.tab.metas for ca in self.cajas)
+        if self.completado: self.audio.reproducir_sfx("victoria")
 
-
-    def deshacer_ultimo_movimiento(self):
-        if self.historial_movimientos:
-            estado_anterior = self.historial_movimientos.pop()
-            
-            self.jugador.fila, self.jugador.columna = estado_anterior['jugador']
-            for i, posicion in enumerate(estado_anterior['cajas']):
-                self.cajas[i].fila, self.cajas[i].columna = posicion
-                
-            self.nivel_completado = False
+    def deshacer(self):
+        if self.hist:
+            e = self.hist.pop()
+            self.player.f, self.player.c = e['p']
+            for i, pos in enumerate(e['c']): self.cajas[i].f, self.cajas[i].c = pos
+            self.completado = False
 
     def draw(self):
-
         self.surface.fill((35, 45, 60))
-        
-        if self.estado_actual == "MENU":
-            self.dibujar_interfaz_menu()
+        if self.estado == "MENU":
+            self.dibujar_menu()
         else:
-            self.dibujar_escena_juego()
+            self.dibujar_juego()
 
+    def dibujar_menu(self):
+        m = self.menu
+        
+        mpos = self.escalar_mouse(pygame.mouse.get_pos())
+        
+        if m.submenu == "principal":
+            self.dibujar_txt("SOKOBAN", 80)
+            m.btn_jugar.dibujar(self.surface, mpos)
+            m.btn_ayuda.dibujar(self.surface, mpos)
+            m.btn_salir.dibujar(self.surface, mpos)
+            
+            # Dibujo personaje
+            if 'derecha' in self.sprites:
+                img = pygame.transform.scale(self.sprites['derecha'], (180,180))
+                y = m.btn_ayuda.rect.centery - 90
+                self.surface.blit(img, (m.btn_ayuda.rect.left - 200, y))
+        elif m.submenu == "dificultad":
+            self.dibujar_txt("SELECCIONA MODO", 60)
+            m.btn_facil.dibujar(self.surface, mpos)
+            m.btn_medio.dibujar(self.surface, mpos)
+            m.btn_dificil.dibujar(self.surface, mpos)
+            m.btn_reloj.dibujar(self.surface, mpos)
+            m.btn_volver.dibujar(self.surface, mpos)
+        elif m.submenu == "instrucciones":
+            self.dibujar_txt("CÓMO JUGAR", 80)
+            txts = ["Empuja las cajas a las metas.", "• Flechas/WASD: Mover", "• Z: Deshacer", "• R: Reiniciar", "• ESC: Menú"]
+            for i, t in enumerate(txts):
+                img = self.font_chica.render(t, True, (220,220,220))
+                self.surface.blit(img, (self.surface.get_width()//2 - img.get_width()//2, 180 + i*40))
+            m.btn_volver.dibujar(self.surface, mpos)
 
-    def dibujar_titulo_decorado(self, texto, x, y):
-        
-        texto_sombra = self.fuente_titulos.render(texto, True, (20, 20, 30))
-        self.surface.blit(texto_sombra, (x + 4, y + 4))
-        
-        
-        texto_contorno = self.fuente_titulos.render(texto, True, (0, 0, 0))
-        self.surface.blit(texto_contorno, (x - 2, y))
-        self.surface.blit(texto_contorno, (x + 2, y))
-        self.surface.blit(texto_contorno, (x, y - 2))
-        self.surface.blit(texto_contorno, (x, y + 2))
-        
-        
-        texto_principal = self.fuente_titulos.render(texto, True, (255, 215, 0))
-        self.surface.blit(texto_principal, (x, y))
+    def dibujar_txt(self, txt, y):
+        t = self.font_grande.render(txt, True, (255, 215, 0))
+        self.surface.blit(t, (self.surface.get_width()//2 - t.get_width()//2, y))
 
-    def dibujar_interfaz_menu(self):
-        menu = self.interfaz_menu
-        ancho_v, alto_v = self.surface.get_width(), self.surface.get_height()
-        centro_x = ancho_v // 2 - 175
-        centro_x_dificultad = ancho_v // 2 - 150
+    def dibujar_juego(self):
+        w = self.tab.cols * self.TAM
+        h = self.tab.filas * self.TAM
+        ox = (self.surface.get_width() - w) // 2
+        oy = (self.surface.get_height() - h) // 2
         
-        if menu.submenu == "principal":
+        self.tab.dibujar(self.surface, self.TAM, ox, oy)
+        for c in self.cajas: c.dibujar(self.surface, self.TAM, self.tab, ox, oy)
+        self.player.dibujar(self.surface, self.TAM, ox, oy)
         
-            texto = "SOKOBAN"
-            ancho_texto = self.fuente_titulos.size(texto)[0]
-            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 80)
-            
-            menu.boton_jugar.dibujar(self.surface, centro_x, 200)
-            menu.boton_ayuda.dibujar(self.surface, centro_x, 320) # CÓMO JUGAR a Y=260
-            menu.boton_salir.dibujar(self.surface, centro_x, 440)
+        if self.modo == "contrareloj":
+            t = self.font_reloj.render(f"TIEMPO: {int(self.tiempo//60):02d}:{int(self.tiempo%60):02d}", True, (255,100,100))
+            self.surface.blit(t, (self.surface.get_width()//2 - t.get_width()//2, 20))
+        
+        if self.agotado:
+            self.dibujar_cartel("¡TIEMPO AGOTADO!", f"Niveles: {self.ganados}")
+        elif self.completado:
+            self.dibujar_cartel("¡NIVEL COMPLETADO!", "ESPACIO para continuar")
 
-        
-            escala = 3
-            tamano_grande = self.TAMANO_CELDA * escala
-            jugador_der = pygame.transform.scale(self.sprites_jugador['derecha'], (tamano_grande, tamano_grande))
-            
-            y_alineado = 320 + (70 // 2) - (tamano_grande // 2)
-            
-        
-            separacion = 60
-            x_decoracion = centro_x - tamano_grande - separacion
-            
-            self.surface.blit(jugador_der, (x_decoracion, y_alineado))
-            
-        elif menu.submenu == "dificultad":
-            texto = "SELECCIONA MODO"
-            ancho_texto = self.fuente_titulos.size(texto)[0]
-            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 60)
-            
-            menu.boton_facil.dibujar(self.surface, centro_x_dificultad, 160)
-            menu.boton_medio.dibujar(self.surface, centro_x_dificultad, 250)
-            menu.boton_dificil.dibujar(self.surface, centro_x_dificultad, 340)
-            menu.boton_contrareloj.dibujar(self.surface, centro_x_dificultad, 430)
-            
-            menu.boton_volver.dibujar(self.surface, 20, alto_v - 90)
-            
-        elif menu.submenu == "instrucciones":
-            texto = "COMO JUGAR"
-            ancho_texto = self.fuente_titulos.size(texto)[0]
-            self.dibujar_titulo_decorado(texto, ancho_v // 2 - ancho_texto // 2, 80)
-            
-            lineas = [" ",
-                "Empuja las cajas a las metas sin quedar atrapado!",
-                "• Flechas / WASD: Moverse", 
-                "• Z: Deshacer movimiento", 
-                "• R: Reiniciar nivel", 
-                "• ESC: Volver al menú",
-                "• Contrarreloj: Completa niveles antes de que el tiempo se agote"
-            ]
-            
-            for i, linea in enumerate(lineas):
-                color = (255, 230, 150) if i == 0 else (220, 220, 220)
-                img_texto = self.fuente_textos.render(linea, True, color)
-                self.surface.blit(img_texto, (ancho_v // 2 - img_texto.get_width() // 2, 160 + i * 50))
-            
-            menu.boton_volver.dibujar(self.surface, 20, alto_v - 90)
-    def dibujar_escena_juego(self):
-        ancho_mapa = self.tablero.total_columnas * self.TAMANO_CELDA
-        alto_mapa = self.tablero.total_filas * self.TAMANO_CELDA
-        
-        desplazamiento_x = (self.surface.get_width() - ancho_mapa) // 2
-        desplazamiento_y = (self.surface.get_height() - alto_mapa) // 2
-        
-        self.tablero.dibujar(self.surface, self.TAMANO_CELDA, desplazamiento_x, desplazamiento_y)
-        
-        for caja in self.cajas:
-            caja.dibujar(self.surface, self.TAMANO_CELDA, self.tablero, desplazamiento_x, desplazamiento_y)
-            
-        self.jugador.dibujar(self.surface, self.TAMANO_CELDA, desplazamiento_x, desplazamiento_y)
-        
-        
-        if self.modo_de_juego == "contrareloj":
-            
-            minutos = int(self.tiempo_restante) // 60
-            segundos = int(self.tiempo_restante) % 60
-            
-            texto_tiempo = self.fuente_reloj.render(f"TIEMPO: {minutos:02d}:{segundos:02d}", True, (255, 100, 100))
-            self.surface.blit(texto_tiempo, (self.surface.get_width() // 2 - texto_tiempo.get_width() // 2, 20))
-            
-            texto_puntaje = self.fuente_reloj.render(f"NIVELES: {self.niveles_superados_contrareloj}", True, (100, 255, 100))
-            self.surface.blit(texto_puntaje, (20, 20))
-            
-        
-        if self.tiempo_agotado:
-            
-            texto_fin = self.fuente_fin.render("¡TIEMPO AGOTADO!", True, (255, 100, 100))
-            texto_resumen = pygame.font.SysFont("Arial", 22).render(f"Niveles superados: {self.niveles_superados_contrareloj} (ESPACIO para salir)", True, (200, 200, 200))
-            
-            rectangulo_fondo = texto_fin.get_rect(center=(self.surface.get_width() // 2, self.surface.get_height() // 2 - 20))
-            pygame.draw.rect(self.surface, (0, 0, 0), rectangulo_fondo.inflate(60, 100))
-            self.surface.blit(texto_fin, rectangulo_fondo)
-            self.surface.blit(texto_resumen, (self.surface.get_width() // 2 - texto_resumen.get_width() // 2, self.surface.get_height() // 2 + 20))
-            
-        elif self.nivel_completado:
-            fuente_victoria = pygame.font.SysFont("Arial", 30, bold=True)
-            texto_v = fuente_victoria.render("¡NIVEL COMPLETADO!", True, (255, 255, 255))
-            rectangulo_texto = texto_v.get_rect(center=(self.surface.get_width() // 2, self.surface.get_height() // 2))
-            
-            pygame.draw.rect(self.surface, (0, 0, 0), rectangulo_texto.inflate(40, 40))
-            self.surface.blit(texto_v, rectangulo_texto)
-
+    def dibujar_cartel(self, t1, t2):
+        s = pygame.Surface((400, 150), pygame.SRCALPHA)
+        s.fill((0,0,0,180))
+        self.surface.blit(s, (self.surface.get_width()//2 - 200, self.surface.get_height()//2 - 75))
+        img1 = self.font_reloj.render(t1, True, (255,255,255))
+        img2 = self.font_chica.render(t2, True, (200,200,200))
+        self.surface.blit(img1, (self.surface.get_width()//2 - img1.get_width()//2, self.surface.get_height()//2 - 30))
+        self.surface.blit(img2, (self.surface.get_width()//2 - img2.get_width()//2, self.surface.get_height()//2 + 20))
 
 if __name__ == "__main__":
     MiJuego().run_preview()
-    pygame.quit()
+    
