@@ -1,14 +1,39 @@
 import sys
 import os
 
-from enfocate import GameBase, GameMetadata, COLORS
 
+
+
+def configurar_rutas():
+    ruta_actual = os.path.dirname(os.path.abspath(__file__))
+    temp_ruta = ruta_actual
+    ruta_raiz = None
+    
+    for _ in range(10): 
+        if "enfocate-core-lib" in os.listdir(temp_ruta):
+            ruta_raiz = temp_ruta
+            break
+        nueva_ruta = os.path.dirname(temp_ruta)
+        if nueva_ruta == temp_ruta: 
+            break
+        temp_ruta = nueva_ruta
+
+    if ruta_raiz:
+        ruta_libreria = os.path.join(ruta_raiz, "enfocate-core-lib")
+        if ruta_libreria not in sys.path:
+            sys.path.insert(0, ruta_libreria)
+        if ruta_raiz not in sys.path:
+            sys.path.insert(0, ruta_raiz)
+
+configurar_rutas()
+
+from src.enfocate import GameBase, GameMetadata, COLORS
 import pygame
 import random
 
 from niveles import MAPAS
 from menu import InterfazMenu
-from audio import GestorAudio 
+from audio import GestorAudio
 
 
 class Tablero:
@@ -219,8 +244,7 @@ class MiJuego(GameBase):
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                self._stop_context()
             
             if self.estado_actual == "MENU":
                 self.gestionar_logica_menu(evento)
@@ -236,7 +260,7 @@ class MiJuego(GameBase):
             elif menu.boton_ayuda.fue_presionado(evento): 
                 menu.submenu = "instrucciones"
             elif menu.boton_salir.fue_presionado(evento): 
-                pygame.quit(); sys.exit()
+                self._stop_context()
         
         elif menu.submenu == "dificultad":
             if menu.boton_volver.fue_presionado(evento): 

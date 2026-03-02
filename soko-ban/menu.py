@@ -42,7 +42,7 @@ class Boton:
 
     def fue_presionado(self, evento):
         
-        if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
+        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
         
             if self.rect.collidepoint(evento.pos):
                 return True
@@ -64,3 +64,6 @@ class InterfazMenu:
         self.boton_contrareloj = Boton("CONTRARRELOJ", 300, 65, (120, 60, 160), (160, 80, 200))
         
         self.boton_volver = Boton("VOLVER", 150, 50, (80, 80, 80), (120, 120, 120))
+
+
+
